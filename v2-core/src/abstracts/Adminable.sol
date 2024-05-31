@@ -13,6 +13,7 @@ abstract contract Adminable is IAdminable {
 
     /// @inheritdoc IAdminable
     address public override admin;
+    address public pendingAdmin;
 
     /*//////////////////////////////////////////////////////////////////////////
                                       MODIFIERS
@@ -30,12 +31,19 @@ abstract contract Adminable is IAdminable {
                          USER-FACING NON-CONSTANT FUNCTIONS
     //////////////////////////////////////////////////////////////////////////*/
 
-    /// @inheritdoc IAdminable
-    function transferAdmin(address newAdmin) public virtual override onlyAdmin {
-        // Effect: update the admin.
-        admin = newAdmin;
+    /// @notice Propose a new admin.
+    /// @param newAdmin The address of the proposed new admin.
+    function proposeAdmin(address newAdmin) public onlyAdmin {
+        require(newAdmin != address(0), "New admin address cannot be zero");
+        pendingAdmin = newAdmin;
+        emit IAdminable.ProposeAdmin({ oldAdmin: admin, proposedAdmin: newAdmin });
+    }
 
-        // Log the transfer of the admin.
-        emit IAdminable.TransferAdmin({ oldAdmin: msg.sender, newAdmin: newAdmin });
+    /// @notice Accept the admin role.
+    function acceptAdmin() public {
+        require(msg.sender == pendingAdmin, "Only proposed admin can accept");
+        admin = pendingAdmin;
+        pendingAdmin = address(0);
+        emit IAdminable.TransferAdmin({ oldAdmin: admin, newAdmin: msg.sender });
     }
 }
